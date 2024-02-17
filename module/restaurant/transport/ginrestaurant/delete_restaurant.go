@@ -1,0 +1,42 @@
+package ginrestaurant
+
+import (
+	"Food-delivery/common"
+	"Food-delivery/component/appctx"
+	restaurantbiz "Food-delivery/module/restaurant/biz"
+	restaurantstorage "Food-delivery/module/restaurant/storage"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+func DeleteRestaurant(appCtx appctx.AppContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		db := appCtx.GetMainDBConnection()
+		requester := c.MustGet(common.CurrentUser).(common.Requester)
+		// id, err := strconv.Atoi(c.Param("id"))
+		// dùng FromBase58 tip ngược lại
+		uid, err := common.FromBase58(c.Param("id"))
+
+		if err != nil {
+			// c.JSON(http.StatusBadRequest, gin.H{
+			// 	"error": err.Error(),
+			// })
+			panic(common.ErrInvalidRequest(err))
+		}
+
+		store := restaurantstorage.NewSQLStore(db)
+		biz := restaurantbiz.NewDeleteRestaurantBiz(store, requester)
+		if err := biz.DeleteRestaurant(c.Request.Context(), int(uid.GetLocalID())); err != nil {
+			// c.JSON(http.StatusBadRequest, gin.H{
+			// 	"error": err.Error(),
+			// })
+			// return
+			panic(err)
+		}
+
+		c.JSON(http.StatusOK, common.SimpleSuccessResponse(true))
+
+	}
+}
